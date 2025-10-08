@@ -1,0 +1,1 @@
+A simple two-player tank game on the same keyboard. Move your tank, shoot bullets, and try to destroy the other player on a map with walls. Uses shared memory, semaphores, and ncurses for the interface.
