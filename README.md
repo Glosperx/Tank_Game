@@ -31,13 +31,11 @@ sudo apt-get install libncurses5-dev libncurses-dev
 
 ## Compilation
 
-```bash
 make
 ```
-
 To clean build artifacts and IPC resources:
 
-```bash
+```
 make clean
 ```
 

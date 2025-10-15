@@ -121,10 +121,12 @@ void init_game() {
 
     game_state->player1_hp = INITIAL_HP;
     game_state->player2_hp = INITIAL_HP;
+    
+    // Directia initiala: sus (dir_y = 1 inseamna sus acum)
     game_state->player1_dir_x = 0;
-    game_state->player1_dir_y = -1;
+    game_state->player1_dir_y = 1;
     game_state->player2_dir_x = 0;
-    game_state->player2_dir_y = -1;
+    game_state->player2_dir_y = 1;
 
     // Pozitii de spawn
     game_state->player1_x = 2;
@@ -272,17 +274,71 @@ void fire_projectile(char which_player) {
 }
 
 void update_projectiles() {
+    // Prima trecere: calculeaza noile pozitii
+    int next_positions[10][2]; // [i][0] = next_x, [i][1] = next_y
+    int to_deactivate[10] = {0}; // marcheaza proiectilele care trebuie dezactivate
+    
     for (int i = 0; i < 10; i++) {
-        if (!game_state->projectiles[i].active)
+        if (!game_state->projectiles[i].active) {
+            next_positions[i][0] = -1;
+            next_positions[i][1] = -1;
             continue;
+        }
         
         int proj_x = game_state->projectiles[i].x;
         int proj_y = game_state->projectiles[i].y;
         int dir_x = game_state->projectiles[i].dir_x;
         int dir_y = game_state->projectiles[i].dir_y;
         
-        int next_x = proj_x + dir_x;
-        int next_y = proj_y + dir_y;
+        next_positions[i][0] = proj_x + dir_x;
+        next_positions[i][1] = proj_y + dir_y;
+    }
+    
+    // A doua trecere: verifica coliziuni intre proiectile
+    for (int i = 0; i < 10; i++) {
+        if (!game_state->projectiles[i].active || to_deactivate[i])
+            continue;
+            
+        for (int j = i + 1; j < 10; j++) {
+            if (!game_state->projectiles[j].active || to_deactivate[j])
+                continue;
+            
+            // Cazul 1: Ambele proiectile ajung in aceeasi pozitie
+            if (next_positions[i][0] == next_positions[j][0] && 
+                next_positions[i][1] == next_positions[j][1]) {
+                to_deactivate[i] = 1;
+                to_deactivate[j] = 1;
+                continue;
+            }
+            
+            // Cazul 2: Proiectilele se intalnesc (se incruciseaza)
+            if (next_positions[i][0] == game_state->projectiles[j].x &&
+                next_positions[i][1] == game_state->projectiles[j].y &&
+                next_positions[j][0] == game_state->projectiles[i].x &&
+                next_positions[j][1] == game_state->projectiles[i].y) {
+                to_deactivate[i] = 1;
+                to_deactivate[j] = 1;
+            }
+        }
+    }
+    
+    // A treia trecere: misca sau dezactiveaza proiectilele
+    for (int i = 0; i < 10; i++) {
+        if (!game_state->projectiles[i].active)
+            continue;
+        
+        int proj_x = game_state->projectiles[i].x;
+        int proj_y = game_state->projectiles[i].y;
+        int next_x = next_positions[i][0];
+        int next_y = next_positions[i][1];
+        
+        // Dezactiveaza daca a lovit alt proiectil
+        if (to_deactivate[i]) {
+            lock_position(proj_y, proj_x);
+            game_state->projectiles[i].active = 0;
+            unlock_position(proj_y, proj_x);
+            continue;
+        }
         
         // Verifica daca iese din harta
         if (next_x < 0 || next_x >= game_state->width || 
@@ -413,41 +469,33 @@ int main(int argc, char *argv[]) {
     while (!game_state->game_over) {
         int ch = getch();
         
-        switch (ch) {
-            case 'w':
-                if (ch == key_a_up) move_player('A', 0, -1);
-                break;
-            case 's':
-                if (ch == key_a_down) move_player('A', 0, 1);
-                break;
-            case 'a':
-                if (ch == key_a_left) move_player('A', -1, 0);
-                break;
-            case 'd':
-                if (ch == key_a_right) move_player('A', 1, 0);
-                break;
-            case 'f':
-                if (ch == key_a_fire) fire_projectile('A');
-                break;
-            case 'i':
-                if (ch == key_b_up) move_player('B', 0, -1);
-                break;
-            case 'k':
-                if (ch == key_b_down) move_player('B', 0, 1);
-                break;
-            case 'j':
-                if (ch == key_b_left) move_player('B', -1, 0);
-                break;
-            case 'l':
-                if (ch == key_b_right) move_player('B', 1, 0);
-                break;
-            case ' ':
-                if (ch == key_b_fire) fire_projectile('B');
-                break;
-            case 'q':
-            case 'Q':
-                game_state->game_over = 1;
-                break;
+        // Player A controls
+        if (ch == key_a_up) {
+            move_player('A', 0, -1);  // Sus: scadem y
+        } else if (ch == key_a_down) {
+            move_player('A', 0, 1);   // Jos: crestem y
+        } else if (ch == key_a_left) {
+            move_player('A', -1, 0);  // Stanga: scadem x
+        } else if (ch == key_a_right) {
+            move_player('A', 1, 0);   // Dreapta: crestem x
+        } else if (ch == key_a_fire) {
+            fire_projectile('A');
+        }
+        // Player B controls
+        else if (ch == key_b_up) {
+            move_player('B', 0, -1);  // Sus: scadem y
+        } else if (ch == key_b_down) {
+            move_player('B', 0, 1);   // Jos: crestem y
+        } else if (ch == key_b_left) {
+            move_player('B', -1, 0);  // Stanga: scadem x
+        } else if (ch == key_b_right) {
+            move_player('B', 1, 0);   // Dreapta: crestem x
+        } else if (ch == key_b_fire) {
+            fire_projectile('B');
+        }
+        // Quit game
+        else if (ch == 'q' || ch == 'Q') {
+            game_state->game_over = 1;
         }
 
         frame_counter++;
