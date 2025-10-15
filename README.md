@@ -29,10 +29,10 @@ A two-player tank battle game implemented in C using shared memory and semaphore
 ```bash
 # Install ncurses (Ubuntu/Debian)
 sudo apt-get install libncurses5-dev libncurses-dev
-
+```
 ## Compilation
 
-```bash
+```
 make
 ```
 
