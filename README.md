@@ -11,8 +11,9 @@ A two-player tank battle game implemented in C using shared memory and semaphore
 - **Two-player gameplay** on the same keyboard
 - **Separate processes** for each player using IPC (Inter-Process Communication)
 - **Shared memory** for game state synchronization
-- **Per-position semaphores** (400 semaphores for 20x20 grid) for fine-grained locking
+- **Per-position semaphores** (401 semaphores: 400 for 20x20 grid positions + 1 for projectile updates) for fine-grained locking
 - **Animated projectiles** that move until hitting a tank, wall, or boundary
+- **Projectile collision detection** - projectiles destroy each other on impact
 - **Health system** with 5 HP per player
 - **ncurses interface** for terminal-based graphics
 
@@ -21,7 +22,7 @@ A two-player tank battle game implemented in C using shared memory and semaphore
 
 - GCC compiler
 - ncurses library
-- Linux/Unix environment (for IPC primitives)
+- Linux/Unix environment
 
 ## Installation
 
@@ -31,8 +32,10 @@ sudo apt-get install libncurses5-dev libncurses-dev
 
 ## Compilation
 
+```bash
 make
 ```
+
 To clean build artifacts and IPC resources:
 
 ```
@@ -55,26 +58,27 @@ make run2
 
 ### Option 2: Manual execution
 
-**Terminal 1:**
+**Terminal 1 (Player A):**
 ```bash
-./game harta.txt A w s a d f i k j l space
+./game harta.txt A w s a d f
 ```
 
-**Terminal 2:**
+**Terminal 2 (Player B):**
 ```bash
-./game harta.txt B w s a d f i k j l space
+./game harta.txt B i k j l space
 ```
 
 ### Command-line Arguments
 
 ```bash
-./game <map_file> <player_id> <A_up> <A_down> <A_left> <A_right> <A_fire> <B_up> <B_down> <B_left> <B_right> <B_fire>
+./game <map_file> <player_id> <up> <down> <left> <right> <fire>
 ```
 
 - `map_file`: Path to the map file (e.g., `harta.txt`)
 - `player_id`: Player identifier (A or B)
-- Next 5 arguments: Controls for Player A (up, down, left, right, fire)
-- Last 5 arguments: Controls for Player B (up, down, left, right, fire)
+- Next 5 arguments: Controls for this player (up, down, left, right, fire)
+
+**Note:** Each process runs for a single player, but can see both players' controls on screen.
 
 ## Controls
 
@@ -95,7 +99,9 @@ make run2
 - `space` - Fire projectile
 
 **Both players:**
-- `q` or `Q` - Quit game
+- `q` or `Q` - Quit game  
+
+**Note:** Controls can be customized via command-line arguments.
 
 ## Map Format
 
@@ -129,11 +135,16 @@ Example map:
 
 ## How It Works
 
-Both processes share the same game state through System V shared memory. Each process:
-1. Reads keyboard input for **both** players
+### Synchronization Architecture
+
+Both processes share the same game state through System V shared memory. The synchronization uses:
+
+- **400 position semaphores**: One semaphore for each cell in the 20×20 grid
+- **1 projectile update semaphore**: Ensures only one process updates projectiles per frame
+
+Each process:
+1. Reads keyboard input for **both** players (each process can control both tanks)
 2. Locks specific grid positions using semaphores before modification
 3. Updates the shared game state
 4. Unlocks positions after modification
 5. Renders the current game state using ncurses
-
-This architecture ensures thread-safe concurrent access while maximizing parallelism through fine-grained locking.
