@@ -2,6 +2,11 @@
 
 A two-player tank game where each player runs in their own process.
 
+
+## Demo  
+
+![Gameplay Demo](tank2.gif)
+
 ## Requirements
 - GCC compiler
 - ncurses library
