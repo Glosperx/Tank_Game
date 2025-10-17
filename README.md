@@ -1,150 +1,76 @@
 # Tank Battle Game
 
-A two-player tank battle game implemented in C using shared memory and semaphores for process synchronization.
-
-## Demo
-
-![Gameplay Demo](tank.gif)
-
-## Features
-
-- **Two-player gameplay** on the same keyboard
-- **Separate processes** for each player using IPC (Inter-Process Communication)
-- **Shared memory** for game state synchronization
-- **Per-position semaphores** (401 semaphores: 400 for 20x20 grid positions + 1 for projectile updates) for fine-grained locking
-- **Animated projectiles** that move until hitting a tank, wall, or boundary
-- **Projectile collision detection** - projectiles destroy each other on impact
-- **Health system** with 5 HP per player
-- **ncurses interface** for terminal-based graphics
-
+A two-player tank game where each player runs in their own process.
 
 ## Requirements
-
 - GCC compiler
 - ncurses library
 - Linux/Unix environment
 
 ## Installation
-
+For Debian based distros
 ```bash
-# Install ncurses (Ubuntu/Debian)
 sudo apt-get install libncurses5-dev libncurses-dev
 ```
+
+
 ## Compilation
 
-```
+```bash
 make
 ```
 
-To clean build artifacts and IPC resources:
+or 
+```bash
+gcc -Wall -g -o game game.c -lncurses -lpthread
+```
 
-```
-make clean
-```
 
 ## Running the Game
+Each player needs to run the game in a separate terminal:
 
-### Option 1: Using Makefile shortcuts
-
-**Terminal 1 (Player A):**
+**Player A:**
 ```bash
 make run1
 ```
+or 
 
-**Terminal 2 (Player B):**
+```bash
+./game map.txt A w s a d f
+```
+You can put any keybinds that you want
+
+**Player B:**
 ```bash
 make run2
 ```
-
-### Option 2: Manual execution
-
-**Terminal 1 (Player A):**
-```bash
-./game harta.txt A w s a d f
-```
-
-**Terminal 2 (Player B):**
-```bash
-./game harta.txt B i k j l space
-```
-
-### Command-line Arguments
+or
 
 ```bash
-./game <map_file> <player_id> <up> <down> <left> <right> <fire>
+./game map.txt B i k j l space
 ```
-
-- `map_file`: Path to the map file (e.g., `harta.txt`)
-- `player_id`: Player identifier (A or B)
-- Next 5 arguments: Controls for this player (up, down, left, right, fire)
-
-**Note:** Each process runs for a single player, but can see both players' controls on screen.
 
 ## Controls
 
-### Default Controls
-
 **Player A:**
-- `w` - Move up
-- `s` - Move down
-- `a` - Move left
-- `d` - Move right
-- `f` - Fire projectile
+- `w,s,a,d` - Movement
+- `f` - Fire
 
 **Player B:**
-- `i` - Move up
-- `k` - Move down
-- `j` - Move left
-- `l` - Move right
-- `space` - Fire projectile
+- `i,k,j,l` - Movement
+- `space` - Fire
 
-**Both players:**
-- `q` or `Q` - Quit game  
-
-**Note:** Controls can be customized via command-line arguments.
-
-## Map Format
-
-The map file (`harta.txt`) uses:
-- `#` - Walls
-- ` ` (space) - Open area
-- Dimensions: 20×20 maximum
-
-Example map:
-```
-####################
-#        #        #
-#        #        #
-#        #        #
-#                 #
-#        #        #
-#        #        #
-#        #        #
-#        #        #
-####################
-```
+**Both:**
+- `q` - Quit
 
 ## Game Rules
+- Each player has 5 HP
+- Hit opponent with projectiles to reduce their HP
+- First to reach 0 HP loses
+- If one player quits, the other player is automatically notified and the game ends
 
-1. Each player starts with 5 HP
-2. Players can move in four directions and fire projectiles
-3. Projectiles travel in the direction the tank is facing
-4. Getting hit by a projectile reduces HP by 1
-5. First player to reach 0 HP loses
-6. Both players can be controlled from either terminal
-
-## How It Works
-
-### Synchronization Architecture
-
-Both processes share the same game state through System V shared memory. The synchronization uses:
-
-- **400 position semaphores**: One semaphore for each cell in the 20×20 grid
-- **1 projectile update semaphore**: Ensures only one process updates projectiles per frame
-
-Each process:
-1. Reads keyboard input for **both** players (each process can control both tanks)
-2. Locks specific grid positions using semaphores before modification
-3. Updates the shared game state
-4. Unlocks positions after modification
-5. Renders the current game state using ncurses
+## Features
+- Each player runs in a separate process
+- Shared memory for game state
+- Protected player positions
+- Safe cleanup when either player exits

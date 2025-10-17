@@ -684,7 +684,7 @@ int main(int argc, char *argv[]) {
 
     if (game_state->game_over) {
         draw_game(); // Display final screen
-        // sleep(3);   // Wait 3 seconds
+        sleep(3);   // Wait 3 seconds
         should_cleanup = 1; // Mark for IPC resource cleanup
     }
 
